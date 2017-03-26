@@ -20,14 +20,20 @@ if("rpart.plot" %in% rownames(installed.packages()) == FALSE) {install.packages(
 options(scipen = 999) #disable scientific notation
 R.version.string
 ```
-This is a sample notebook from IBM Cognitive Builder Faire Seattle.
+# Intro 
+
+This is a sample based on an original version from IBM [Cognitive Builder Faire](https://cognitivebuilder.github.io/) in Seattle on March 26, 2017, by Polong Lin, Joseph Santarcangelo, Ph.D. 
+
 I redid it in RStudio for my own educational purposes.
+
+First, load the data:
 
 ```{r}
 recipes <- read.csv("recipes.csv")
 grep("wasabi", names(recipes), value = TRUE) #Yes
 ```
 
+Make a simple frequency table to understand a little about the data:
 
 ```{r}
 t <- base::table(recipes$country) #frequency table
@@ -52,7 +58,9 @@ recipes$country[recipes$country == "thailand"] <- "thai"
 recipes$country[recipes$country == "vietnam"] <- "vietnamese"
 ```
 
-remove data
+*Problem: Some countries have very few recipes*
+
+Remove data for countries with <50 recipes:
 
 ```{r}
 t <- sort(base::table(recipes$country), decreasing = T)
@@ -70,13 +78,13 @@ print(paste(before - after, "rows removed."))
 sort(base::table(recipes$country), decreasing = T)
 ```
 
-Convert to factors
+Convert all of the columns into factors (to run the classification model later)
 
 ```{r}
 recipes[,names(recipes)] <- lapply(recipes[,names(recipes)] , as.factor)
 ```
 
-check
+## Q: Can we tell that some food is Japanese if it contains rice and soy sauce and wasabi and seaweed?
 
 ```{r}
 head(recipes[recipes$rice == "Yes" &
@@ -85,7 +93,11 @@ head(recipes[recipes$rice == "Yes" &
         recipes$seaweed == "Yes",1:5])
 ```
 
-count
+## Q: Which ingredients are most common? Which are the least-used ingredients?¶
+
+Goals:
+* count the ingredients across all recipes
+
 
 ```{r}
 ## Sum the row count when the value of the row in a column is equal to "Yes" (value of 2)

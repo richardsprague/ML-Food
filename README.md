@@ -6,3 +6,5 @@ This code is based on an example project presented at the [Cognitive Builder Fai
 See the [speaker slides and notes](https://ibm.ent.box.com/v/DataScienceFoodRecipes) for more details.
 
 So far all I've done is convert the original code so that it works under RStudio.
+
+Original version by Polong Lin, Joseph Santarcangelo, Ph.D.
