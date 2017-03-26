@@ -1,10 +1,11 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document: default
+  html_notebook: default
 ---
 ```{r}
-download.file("https://ibm.box.com/shared/static/5wah9atr5o1akuuavl2z9tkjzdinr1lv.csv",
-              destfile = "recipes.csv", quiet = TRUE)
+#download.file("https://ibm.box.com/shared/static/5wah9atr5o1akuuavl2z9tkjzdinr1lv.csv",              destfile = "recipes.csv", quiet = TRUE)
 
 # download.file("https://ibm.box.com/shared/static/rtqci87zjkgt7jpac9egrln9kifqqxuq.zip",
 #               destfile = "/resources/rstudio/recipes-shiny.zip", quiet = TRUE)
@@ -17,8 +18,10 @@ if("rpart.plot" %in% rownames(installed.packages()) == FALSE) {install.packages(
     repo = "http://mirror.las.iastate.edu/CRAN/")}
 
 options(scipen = 999) #disable scientific notation
+R.version.string
 ```
-
+This is a sample notebook from IBM Cognitive Builder Faire Seattle.
+I redid it in RStudio for my own educational purposes.
 
 ```{r}
 recipes <- read.csv("recipes.csv")
@@ -28,7 +31,7 @@ grep("wasabi", names(recipes), value = TRUE) #Yes
 
 ```{r}
 t <- base::table(recipes$country) #frequency table
-sort(t, decreasing = TRUE)
+sort(t, decreasing = TRUE)[1:5]
 ```
 
 Next clean the data
@@ -76,10 +79,10 @@ recipes[,names(recipes)] <- lapply(recipes[,names(recipes)] , as.factor)
 check
 
 ```{r}
-recipes[recipes$rice == "Yes" &
+head(recipes[recipes$rice == "Yes" &
         recipes$soy_sauce == "Yes" &
         recipes$wasabi == "Yes" &
-        recipes$seaweed == "Yes",]
+        recipes$seaweed == "Yes",1:5])
 ```
 
 count
@@ -99,7 +102,7 @@ ing_df <- data.frame("ingredient" = names(ingred),
                 
 ing_df_sort <- ing_df[order(ing_df$count, decreasing = TRUE),]
 rownames(ing_df_sort) <- 1:nrow(ing_df_sort)
-ing_df_sort
+head(ing_df_sort)
 ```
 
 difference among countries
@@ -115,22 +118,22 @@ by_country_norm <- by_country_norm[,-2]
 #Rename the first column into "country"
 names(by_country_norm)[1] <- "country"
                                               
-by_country_norm
+head(by_country_norm[,1:5])
 ```
 
-what is canadian food?
+# Find specific ethnic foods
 
 ```{r}
-region <- "german" #try: italian
+region <- "canada" #try: italian
 
 regiondata <- by_country_norm[by_country_norm$country == region,]
-t(sort(regiondata, decreasing = TRUE))
+head(t(sort(regiondata, decreasing = TRUE)))
 ```
 
 top 5 most popular ingredients in each country
 
 ```{r}
-for(nation in by_country_norm$country){
+for(nation in by_country_norm$country[1:7]){
     x <- sort(by_country_norm[by_country_norm$country == nation,], decreasing = TRUE)
     cat(c(toupper(nation)))
     cat("\n")
@@ -179,7 +182,7 @@ library(rpart.plot)
 
 ```{r}
 #Choose one:
-head(recipes)
+head(recipes[,1:5])
 #str(recipes)
 #table(recipes$country)
 ```
@@ -211,7 +214,7 @@ rpart.plot(bamboo_tree, type = 3, fallen.leaves = F, extra = 2, under = TRUE, ce
 more summaries
 
 ```{r}
-summary(bamboo_tree)
+names(bamboo_tree)
 ```
 
 
