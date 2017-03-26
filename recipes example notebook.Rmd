@@ -1,0 +1,355 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+download.file("https://ibm.box.com/shared/static/5wah9atr5o1akuuavl2z9tkjzdinr1lv.csv",
+              destfile = "recipes.csv", quiet = TRUE)
+
+# download.file("https://ibm.box.com/shared/static/rtqci87zjkgt7jpac9egrln9kifqqxuq.zip",
+#               destfile = "/resources/rstudio/recipes-shiny.zip", quiet = TRUE)
+# unzip("/resources/rstudio/recipes-shiny.zip")
+
+## Install libraries if not installed
+if("rpart" %in% rownames(installed.packages()) == FALSE) {install.packages("rpart", 
+    repo = "http://mirror.las.iastate.edu/CRAN/")}
+if("rpart.plot" %in% rownames(installed.packages()) == FALSE) {install.packages("rpart.plot", 
+    repo = "http://mirror.las.iastate.edu/CRAN/")}
+
+options(scipen = 999) #disable scientific notation
+```
+
+
+```{r}
+recipes <- read.csv("recipes.csv")
+grep("wasabi", names(recipes), value = TRUE) #Yes
+```
+
+
+```{r}
+t <- base::table(recipes$country) #frequency table
+sort(t, decreasing = TRUE)
+```
+
+Next clean the data
+
+```{r}
+recipes$country <- tolower( as.character(recipes$country) )
+recipes$country[recipes$country == "china"] <- "chinese"
+recipes$country[recipes$country == "france"] <- "french"
+recipes$country[recipes$country == "germany"] <- "german"
+recipes$country[recipes$country == "india"] <- "indian"
+recipes$country[recipes$country == "israel"] <- "jewish"
+recipes$country[recipes$country == "italy"] <- "italian"
+recipes$country[recipes$country == "japan"] <- "japanese"
+recipes$country[recipes$country == "korea"] <- "korean"
+recipes$country[recipes$country == "mexico"] <- "mexican"
+recipes$country[recipes$country == "scandinavia"] <- "scandinavian"
+recipes$country[recipes$country == "thailand"] <- "thai"
+recipes$country[recipes$country == "vietnam"] <- "vietnamese"
+```
+
+remove data
+
+```{r}
+t <- sort(base::table(recipes$country), decreasing = T)
+
+filter_list <- names( t[ t >= 50 ] )
+
+before <- nrow(recipes) #number of rows of original df
+
+recipes <- recipes[recipes$country %in% filter_list, ]
+
+after <- nrow(recipes)
+
+print(paste(before - after, "rows removed."))
+
+sort(base::table(recipes$country), decreasing = T)
+```
+
+Convert to factors
+
+```{r}
+recipes[,names(recipes)] <- lapply(recipes[,names(recipes)] , as.factor)
+```
+
+check
+
+```{r}
+recipes[recipes$rice == "Yes" &
+        recipes$soy_sauce == "Yes" &
+        recipes$wasabi == "Yes" &
+        recipes$seaweed == "Yes",]
+```
+
+count
+
+```{r}
+## Sum the row count when the value of the row in a column is equal to "Yes" (value of 2)
+ingred <- unlist(
+            lapply( recipes[, names(recipes)], function(x) sum(as.integer(x) == 2))
+            )
+
+## Transpose the dataframe so that each row is an ingredient
+ingred <- as.data.frame( t( as.data.frame(ingred) ))
+                
+ing_df <- data.frame("ingredient" = names(ingred), 
+                     "count" = as.numeric(ingred[1,])
+                    )
+                
+ing_df_sort <- ing_df[order(ing_df$count, decreasing = TRUE),]
+rownames(ing_df_sort) <- 1:nrow(ing_df_sort)
+ing_df_sort
+```
+
+difference among countries
+
+```{r}
+by_country_norm <- aggregate(recipes, 
+                        by = list(recipes$country), 
+                        FUN = function(x) round(sum(as.integer(x) == 2)/
+                                                length(as.integer(x)),4))
+#Remove the unnecessary column "country"
+by_country_norm <- by_country_norm[,-2]
+
+#Rename the first column into "country"
+names(by_country_norm)[1] <- "country"
+                                              
+by_country_norm
+```
+
+what is canadian food?
+
+```{r}
+region <- "german" #try: italian
+
+regiondata <- by_country_norm[by_country_norm$country == region,]
+t(sort(regiondata, decreasing = TRUE))
+```
+
+top 5 most popular ingredients in each country
+
+```{r}
+for(nation in by_country_norm$country){
+    x <- sort(by_country_norm[by_country_norm$country == nation,], decreasing = TRUE)
+    cat(c(toupper(nation)))
+    cat("\n")
+    cat(paste0(names(x)[2:6], " (", round(x[2:6]*100,0), "%) "))
+    cat("\n")
+    cat("\n")
+}
+```
+
+k-means clustering
+```{r}
+n_cluster = 5
+df_cluster <- by_country_norm
+k <- kmeans(df_cluster[,-1], n_cluster)
+df_cluster$cluster <- k$cluster
+for(i in seq( 1, n_cluster )){
+    i <- as.character(i)
+    cat(paste0("[Cluster ", i, "]----------------------------------------------------------"))
+    cat("\n")
+        
+    print(paste0(as.character(df_cluster[df_cluster$cluster == i,]$country)))
+    cat("\n")
+    }
+
+
+
+```
+
+# Decision Trees
+
+```{r}
+# Run this
+
+## Install libraries if not installed
+if("rpart" %in% rownames(installed.packages()) == FALSE) {install.packages("rpart", 
+    repo = "http://mirror.las.iastate.edu/CRAN/")}
+if("rpart.plot" %in% rownames(installed.packages()) == FALSE) {install.packages("rpart.plot", 
+    repo = "http://mirror.las.iastate.edu/CRAN/")}
+
+
+## Load libraries
+library(rpart)
+library(rpart.plot)
+```
+
+
+```{r}
+#Choose one:
+head(recipes)
+#str(recipes)
+#table(recipes$country)
+```
+
+
+But American data dominiates so much, that we can't do good decision trees.
+
+```{r}
+## Select subset of countries
+bamboo_tree <- rpart(formula = country ~ ., 
+                     data = recipes[recipes$country %in% c("korean", 
+                                                           "japanese", 
+                                                           "chinese", 
+                                                           "thai",
+                                                           "indian"),], 
+                     method ="class")
+```
+
+
+```{r}
+# Run this
+
+## Plot the East Asian + Indian model
+## run "?rpart.plot" if you want to see the arguments for rpart.plot
+rpart.plot(bamboo_tree, type = 3, fallen.leaves = F, extra = 2, under = TRUE, cex = 0.75, varlen = 0, faclen = 0)
+
+```
+
+more summaries
+
+```{r}
+summary(bamboo_tree)
+```
+
+
+
+more
+
+```{r}
+bamboo <- recipes[recipes$country %in% c("korean", "japanese", "chinese",
+                                              "thai", "indian"),]
+table(as.factor(as.character(bamboo$country)))
+```
+
+```{r}
+sample_n <- 100
+## Take n recipes from each country
+set.seed(4) #Set random seed
+korean <- bamboo[sample(which(bamboo$country == "korean") , sample_n), ]
+japanese <- bamboo[sample(which(bamboo$country == "japanese") , sample_n), ]
+chinese <- bamboo[sample(which(bamboo$country == "chinese") , sample_n), ]
+thai <- bamboo[sample(which(bamboo$country == "thai") , sample_n), ]
+indian <- bamboo[sample(which(bamboo$country == "indian") , sample_n), ]
+
+#Create the dataframe
+bamboo_test <- rbind(korean,japanese, chinese, thai, indian)
+bamboo_train <- bamboo[!(rownames(bamboo) %in% rownames(bamboo_test)),]
+
+## Check that we have 100 recipes from each cuisine
+table(as.factor(as.character(bamboo_test$country)))
+
+## Check that we have subtracted 100 recipes from each cuisine
+table(as.factor(as.character(bamboo_train$country)))
+```
+
+
+```{r}
+#Train on the bamboo_train data
+bamboo_tree_pred <- rpart(formula = country ~ ., 
+                     data = bamboo_train[bamboo_train$country %in% c("korean", 
+                                                           "japanese", 
+                                                           "chinese", 
+                                                           "thai",
+                                                           "indian"),], 
+                     method ="class")
+
+```
+
+plot it
+
+```{r}
+#Plot the trained tree
+rpart.plot(bamboo_tree_pred, type = 3, extra = 2, fallen.leaves = F, under = TRUE, 
+           cex = 0.75, varlen = 0, faclen = 0)
+```
+
+
+
+# Create a confusion matrix:
+compare the predictions (from the model) with the actual cuisine labels (from the recipes)
+
+```{r}
+bamboo_fit <- predict(bamboo_tree_pred, subset(bamboo_test, select=-c(country)), type = "class")
+bamboo_tab <- table(paste(as.character(bamboo_fit),"_pred", sep =""), 
+                    paste(as.character(bamboo_test$country),"_true", sep =""))
+bamboo_tab
+```
+
+
+# Intrepreting the table:
+* each column is the actual recipe's label (from the website)
+* each value represents the percentage of country X's recipes correctly labeled as country X
+* Example: 63.3% of the Chinese recipes were correctly predicted as "Chinese", incorrectly predicted 30.0% of the time as "Korean", and incorrectly predicted 6.7% as "Japanese"
+
+# Discussion:
+
+* Which cuisines were likely to be mis-classified or correctly classified?
+* Which cuisines seem to be mistaken for which other cuisines?
+
+
+# Deployment
+
+```{r}
+#Creates an empty recipe, "my_recipe"
+my_recipe <- recipes[1,]
+my_recipe[my_recipe[1,]== "Yes"] <- "No"
+my_recipe$country <- NULL
+
+#Function to find an ingredient 
+ing_find <- function(ing){
+    if(length(grep(tolower(ing),names(recipes), value = TRUE)) > 0){
+        grep(tolower(ing),names(recipes), value = TRUE)
+        }
+    else{paste(ing,"was not found.")}
+    }
+
+#Function to predict using the bamboo_tree_pred model, by default
+recipe_predict <- function(inputrecipe, model = bamboo_tree_pred){
+    p <- as.character(predict(model, inputrecipe, type = "class"))
+    paste("Hmm... your recipe tastes rather...", toupper(p))
+}
+```
+
+
+
+# Check your ingredient names:
+
+First, check that your ingredient exists in the list of ingredients:
+
+```{r}
+ing_find("wasabi")
+ing_find("tea")
+```
+
+
+add ingredients
+```{r}
+#Creates an empty recipe, "my_recipe"
+my_recipe <- recipes[1,]
+my_recipe[my_recipe[1,]== "Yes"] <- "No"
+my_recipe$country <- NULL
+
+### YOUR CODE BELOW ###
+my_recipe$rice <- "Yes"
+my_recipe$wasabi <- "Yes"
+my_recipe$soy_sauce <- "Yes"
+
+recipe_predict(my_recipe, model = bamboo_tree) #or olive_tree or baobab_tree
+```
+
+
+bit.ly/recipes-shiny
+
+
+# references and notes
+
+
+Recipes dataset originally from:
+Ahn, Yong-Yeol, et al. "Flavor network and the principles of food pairing." Scientific reports 1 (2011).
+Dataset on ingredient-compounds also available here:
+recipes.csv (64.2 MB): http://bit.ly/recipesdata
+
+
